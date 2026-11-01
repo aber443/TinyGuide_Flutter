@@ -16,16 +16,105 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
     required this.endDate,
   });
 
+  // =========================
+  // Date Formatter
+  // =========================
+
   String formatDate(DateTime date) {
     final String day = date.day.toString().padLeft(2, '0');
     final String month = date.month.toString().padLeft(2, '0');
+
     return '$day/$month/${date.year}';
   }
+
+  // =========================
+  // Report Period Type
+  // =========================
+
+  String getReportPeriodType() {
+    final DateTime start = DateTime(
+      startDate.year,
+      startDate.month,
+      startDate.day,
+    );
+
+    final DateTime end = DateTime(
+      endDate.year,
+      endDate.month,
+      endDate.day,
+    );
+
+    final int totalDays = end.difference(start).inDays + 1;
+
+    // =====================
+    // Daily Report
+    // =====================
+
+    if (totalDays == 1) {
+      return 'تقرير يومي';
+    }
+
+    // =====================
+    // Weekly Report
+    // =====================
+
+    if (totalDays == 7) {
+      return 'تقرير أسبوعي';
+    }
+
+    // =====================
+    // Monthly Report
+    // =====================
+
+    // مثال:
+    // 01/10/2026 إلى 01/11/2026
+
+    final DateTime nextMonth = DateTime(
+      start.year,
+      start.month + 1,
+      start.day,
+    );
+
+    if (end.year == nextMonth.year &&
+        end.month == nextMonth.month &&
+        end.day == nextMonth.day) {
+      return 'تقرير شهري';
+    }
+
+    // =====================
+    // Multiple Weeks
+    // =====================
+
+    if (totalDays > 7 && totalDays % 7 == 0) {
+      final int weeks = totalDays ~/ 7;
+
+      if (weeks == 2) {
+        return 'تقرير لمدة أسبوعين';
+      }
+
+      return 'تقرير لمدة $weeks أسابيع';
+    }
+
+    // =====================
+    // Custom Period
+    // =====================
+
+    if (totalDays == 2) {
+      return 'تقرير لمدة يومين';
+    }
+
+    return 'تقرير لمدة $totalDays أيام';
+  }
+
+  // =========================
+  // Messages
+  // =========================
 
   void _showMessage(BuildContext context, String message) {
     if (!context.mounted) return;
 
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -40,6 +129,7 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
   // =========================
   // Report Sections
   // =========================
+
   static const List<Map<String, String>> reportSections = [
     {
       'title': 'قراءات السكر',
@@ -78,22 +168,33 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
     },
   ];
 
+  // =========================
+  // Section Icons
+  // =========================
+
   IconData _sectionIcon(String title) {
     switch (title) {
       case 'قراءات السكر':
         return Icons.bloodtype_outlined;
+
       case 'الوجبات والتغذية':
         return Icons.restaurant_outlined;
+
       case 'الأدوية':
         return Icons.medication_outlined;
+
       case 'النشاط البدني':
         return Icons.directions_run_rounded;
+
       case 'النمو':
         return Icons.monitor_weight_outlined;
+
       case 'الفحوصات الطبية':
         return Icons.medical_information_outlined;
+
       case 'النصائح الصحية':
         return Icons.health_and_safety_outlined;
+
       default:
         return Icons.description_outlined;
     }
@@ -102,13 +203,17 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
   // =========================
   // Export Comprehensive PDF
   // =========================
+
   Future<void> _exportPdf(BuildContext context) async {
     try {
       final fontData =
       await rootBundle.load('assets/fonts/arial.ttf');
 
       final arabicFont = pw.Font.ttf(fontData);
+
       final pdf = pw.Document();
+
+      final String periodType = getReportPeriodType();
 
       pdf.addPage(
         pw.MultiPage(
@@ -121,6 +226,10 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
           margin: const pw.EdgeInsets.all(32),
           build: (pw.Context pdfContext) {
             return [
+              // =====================
+              // PDF Header
+              // =====================
+
               pw.Center(
                 child: pw.Text(
                   'التقرير الصحي الشامل',
@@ -134,15 +243,37 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
 
               pw.SizedBox(height: 24),
 
-              pw.Text('اسم الطفل: $childName'),
+              // =====================
+              // Child Information
+              // =====================
+
+              pw.Text(
+                'اسم الطفل: $childName',
+              ),
+
+              pw.SizedBox(height: 10),
+
+              // =====================
+              // Report Period Type
+              // =====================
+
+              pw.Text(
+                'نوع التقرير: $periodType',
+              ),
 
               pw.SizedBox(height: 10),
 
               pw.Text(
-                'فترة التقرير: ${formatDate(startDate)} - ${formatDate(endDate)}',
+                'فترة التقرير: '
+                    '${formatDate(startDate)} - '
+                    '${formatDate(endDate)}',
               ),
 
               pw.SizedBox(height: 24),
+
+              // =====================
+              // Health Summary
+              // =====================
 
               pw.Text(
                 'الملخص الصحي العام',
@@ -161,6 +292,10 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
 
               pw.SizedBox(height: 20),
 
+              // =====================
+              // Health Sections
+              // =====================
+
               ...reportSections.expand((section) {
                 return [
                   pw.Text(
@@ -171,13 +306,22 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
                       fontWeight: pw.FontWeight.bold,
                     ),
                   ),
+
                   pw.SizedBox(height: 8),
-                  pw.Text(section['description']!),
+
+                  pw.Text(
+                    section['description']!,
+                  ),
+
                   pw.SizedBox(height: 18),
                 ];
               }),
 
               pw.SizedBox(height: 12),
+
+              // =====================
+              // Medical Note
+              // =====================
 
               pw.Text(
                 'ملاحظة طبية',
@@ -191,7 +335,10 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
               pw.SizedBox(height: 10),
 
               pw.Text(
-                'هذا التقرير مخصص لتنظيم المعلومات الصحية ومتابعتها ومشاركتها مع الطبيب. لا يُعد تشخيصًا طبيًا ولا يغني عن مراجعة الطبيب المختص. لا ينبغي تعديل العلاج أو جرعات الأدوية بناءً على هذا التقرير وحده.',
+                'هذا التقرير مخصص لتنظيم المعلومات الصحية ومتابعتها '
+                    'ومشاركتها مع الطبيب. لا يُعد تشخيصًا طبيًا ولا يغني '
+                    'عن مراجعة الطبيب المختص. لا ينبغي تعديل العلاج '
+                    'أو جرعات الأدوية بناءً على هذا التقرير وحده.',
               ),
             ];
           },
@@ -213,9 +360,14 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
     }
   }
 
+  // =========================
+  // Main Interface
+  // =========================
+
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+
     final bool isDark =
         theme.brightness == Brightness.dark;
 
@@ -234,6 +386,8 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
     final Color borderColor = isDark
         ? Colors.white.withOpacity(0.12)
         : const Color(0xffE2EEEE);
+
+    final String periodType = getReportPeriodType();
 
     return Scaffold(
       body: SafeArea(
@@ -268,6 +422,7 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
                         // =========================
                         // Header
                         // =========================
+
                         SizedBox(
                           height: 48,
                           child: Stack(
@@ -284,6 +439,7 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
                                   ),
                                 ),
                               ),
+
                               Align(
                                 alignment:
                                 AlignmentDirectional.centerStart,
@@ -317,6 +473,7 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
                         // =========================
                         // Report Period
                         // =========================
+
                         _card(
                           cardColor,
                           borderColor,
@@ -326,7 +483,9 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
                                 Icons.date_range_rounded,
                                 primaryColor,
                               ),
+
                               const SizedBox(width: 12),
+
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment:
@@ -340,9 +499,25 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
                                         color: textColor,
                                       ),
                                     ),
+
                                     const SizedBox(height: 5),
+
+                                    // نوع التقرير
                                     Text(
-                                      '${formatDate(startDate)} - ${formatDate(endDate)}',
+                                      periodType,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: primaryColor,
+                                      ),
+                                    ),
+
+                                    const SizedBox(height: 5),
+
+                                    // التاريخ
+                                    Text(
+                                      '${formatDate(startDate)} - '
+                                          '${formatDate(endDate)}',
                                       style: TextStyle(
                                         fontSize: 13,
                                         color: secondaryTextColor,
@@ -356,6 +531,10 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
                         ),
 
                         const SizedBox(height: 24),
+
+                        // =========================
+                        // General Health Summary
+                        // =========================
 
                         Text(
                           'الملخص الصحي العام',
@@ -371,6 +550,7 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
                         // =========================
                         // Empty State
                         // =========================
+
                         _card(
                           cardColor,
                           borderColor,
@@ -383,7 +563,9 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
                                   size: 52,
                                   color: primaryColor,
                                 ),
+
                                 const SizedBox(height: 12),
+
                                 Text(
                                   'لا توجد بيانات صحية للعرض',
                                   textAlign: TextAlign.center,
@@ -393,7 +575,9 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
                                     color: textColor,
                                   ),
                                 ),
+
                                 const SizedBox(height: 8),
+
                                 Text(
                                   'سيظهر الملخص الصحي الشامل بعد ربط بيانات الطفل المسجلة خلال الفترة المحددة.',
                                   textAlign: TextAlign.center,
@@ -410,6 +594,10 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
 
                         const SizedBox(height: 24),
 
+                        // =========================
+                        // Health Details
+                        // =========================
+
                         Text(
                           'تفاصيل التقرير الصحي',
                           style: TextStyle(
@@ -424,6 +612,7 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
                         // =========================
                         // Health Sections
                         // =========================
+
                         ...reportSections.map((section) {
                           return Padding(
                             padding:
@@ -450,6 +639,7 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
                         // =========================
                         // Medical Note
                         // =========================
+
                         _card(
                           cardColor,
                           borderColor,
@@ -462,7 +652,9 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
                                 color: primaryColor,
                                 size: 22,
                               ),
+
                               const SizedBox(width: 9),
+
                               Expanded(
                                 child: Text(
                                   'هذا التقرير مخصص لتنظيم المعلومات الصحية ومتابعتها ومشاركتها مع الطبيب. لا يُعد تشخيصًا طبيًا ولا يغني عن مراجعة الطبيب المختص. لا ينبغي تعديل العلاج أو جرعات الأدوية بناءً على هذا التقرير وحده.',
@@ -482,6 +674,7 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
                         // =========================
                         // Save Report
                         // =========================
+
                         SizedBox(
                           width: double.infinity,
                           height: 52,
@@ -509,6 +702,7 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
                         // =========================
                         // Download PDF
                         // =========================
+
                         SizedBox(
                           width: double.infinity,
                           height: 52,
@@ -544,6 +738,7 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
   // =========================
   // Card
   // =========================
+
   Widget _card(
       Color cardColor,
       Color borderColor,
@@ -564,6 +759,7 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
   // =========================
   // Icon
   // =========================
+
   Widget _icon(
       IconData icon,
       Color primaryColor,
@@ -586,6 +782,7 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
   // =========================
   // Detail Card
   // =========================
+
   Widget _detailCard({
     required IconData icon,
     required String title,
@@ -603,7 +800,9 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _icon(icon, primaryColor),
+
           const SizedBox(width: 12),
+
           Expanded(
             child: Column(
               crossAxisAlignment:
@@ -617,7 +816,9 @@ class ComprehensiveHealthReportScreen extends StatelessWidget {
                     color: textColor,
                   ),
                 ),
+
                 const SizedBox(height: 6),
+
                 Text(
                   description,
                   style: TextStyle(
